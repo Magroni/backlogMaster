@@ -12,10 +12,13 @@ data/
 *.db-shm
 .env
 
-# Generated spreadsheet build/preview artifacts
+# Generated spreadsheet build/preview artifacts & PyInstaller builds
 scripts/generated/
+build/
+dist/
+*.spec
 *.pdf
-*.png
+scripts/*.png
 
 # OS / IDE
 .DS_Store

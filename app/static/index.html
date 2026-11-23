@@ -398,8 +398,9 @@
 
         <div class="two-col">
           <div class="card">
-            <h3>📡 Detector Automático do PC</h3>
+            <h3>📡 Detector Automático & App Windows</h3>
             <div class="check-stack" style="margin-bottom:12px">
+              <label class="check-row"><input id="cfg-win-startup" type="checkbox" onchange="toggleWindowsStartup(this.checked)" /> ⚡ Iniciar automaticamente com o Windows (minimizado na bandeja)</label>
               <label class="check-row"><input id="cfg-auto-track" type="checkbox" /> Ativar detecção automática de jogos rodando no PC</label>
               <label class="check-row"><input id="cfg-auto-add" type="checkbox" /> Adicionar automaticamente ao Backlog ao abrir um jogo instalado novo</label>
             </div>
@@ -410,6 +411,10 @@
             <div class="form-group">
               <label>Pastas extras de jogos (separadas por ponto e vírgula <code>;</code>)</label>
               <input id="cfg-scan-dirs" class="input" placeholder="Ex.: D:\Games; E:\GOG Games" />
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-xs btn-ghost" onclick="openDataFolder()">📁 Abrir Pasta do Banco SQLite</button>
+              <span id="cfg-data-path" class="tiny-muted" style="align-self:center"></span>
             </div>
           </div>
 

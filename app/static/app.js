@@ -990,8 +990,10 @@ async function deleteSession(id) {
 
 // -------------------- SETTINGS & STEAM IMPORT --------------------
 async function loadSettings() {
-  const s = await api('/api/settings');
+  const [s, sysInfo] = await Promise.all([api('/api/settings'), api('/api/system/info').catch(() => ({}))]);
   state.settings = s;
+  document.getElementById('cfg-win-startup').checked = Boolean(sysInfo.windows_startup);
+  document.getElementById('cfg-data-path').textContent = sysInfo.data_dir ? `Salvo em: ${sysInfo.data_dir}` : '';
   document.getElementById('cfg-auto-track').checked = s.auto_track_enabled === '1';
   document.getElementById('cfg-auto-add').checked = s.auto_add_detected === '1';
   document.getElementById('cfg-min-sec').value = s.auto_track_min_seconds || 60;
@@ -1004,6 +1006,17 @@ async function loadSettings() {
   document.getElementById('cfg-steam-key').value = s.steam_api_key || '';
   document.getElementById('cfg-steam-id').value = s.steam_id || '';
   document.getElementById('cfg-itad-key').value = s.itad_api_key || '';
+}
+
+async function toggleWindowsStartup(enabled) {
+  try {
+    const res = await api('/api/system/startup', { method: 'POST', body: JSON.stringify({ enabled }) });
+    toast(res.windows_startup ? '⚡ Ativado! O app iniciará minimizado na bandeja com o Windows.' : 'Inicialização automática com o Windows desativada.');
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function openDataFolder() {
+  await api('/api/system/open-data-dir', { method: 'POST' });
 }
 
 async function saveAllSettings() {

@@ -12,19 +12,28 @@ from pydantic import BaseModel
 
 from . import apis
 from .database import (
+    DATA_DIR,
+    DB_PATH,
     compute_game_metrics,
     compute_wishlist_metrics,
     get_dashboard_summary,
     get_db,
+    get_resource_path,
     get_settings,
     init_db,
     normalize_title,
     save_settings,
 )
 from .scanner import scan_all_installed_games
+from .system_win import (
+    is_windows_startup_enabled,
+    open_data_folder,
+    set_windows_startup,
+    trigger_show_window,
+)
 from .watcher import launch_game_on_pc, watcher
 
-STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+STATIC_DIR = get_resource_path(os.path.join("app", "static"))
 
 
 @asynccontextmanager
@@ -795,3 +804,34 @@ def api_save_settings(body: Dict[str, Any]):
     saved = save_settings(body)
     watcher.refresh_installed_cache(force=True)
     return saved
+
+
+# =====================================================================
+# INTEGRAÇÃO DESKTOP WINDOWS (STARTUP, PASTA DE DADOS, JANELA)
+# =====================================================================
+@app.get("/api/system/info")
+def api_system_info():
+    return {
+        "data_dir": DATA_DIR,
+        "db_path": DB_PATH,
+        "windows_startup": is_windows_startup_enabled(),
+    }
+
+
+@app.post("/api/system/startup")
+def api_system_startup(body: Dict[str, Any]):
+    enabled = bool(body.get("enabled"))
+    ok = set_windows_startup(enabled)
+    return {"ok": ok, "windows_startup": is_windows_startup_enabled()}
+
+
+@app.post("/api/system/open-data-dir")
+def api_system_open_data_dir():
+    open_data_folder()
+    return {"ok": True, "data_dir": DATA_DIR}
+
+
+@app.post("/api/system/show-window")
+def api_system_show_window():
+    shown = trigger_show_window()
+    return {"ok": shown}

@@ -3,14 +3,32 @@ import math
 import os
 import re
 import sqlite3
+import sys
 import unicodedata
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional
 
+
+def get_resource_path(rel_path: str) -> str:
+    """Resolve arquivos empacotados tanto em dev quanto dentro do .exe (PyInstaller)."""
+    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(base, rel_path)
+
+
+def get_data_dir() -> str:
+    """Pasta persistente do banco SQLite (segura mesmo em .exe standalone)."""
+    if getattr(sys, "frozen", False):
+        root = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+        d = os.path.join(root, "GameBacklogMaster")
+    else:
+        d = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-os.makedirs(DATA_DIR, exist_ok=True)
+DATA_DIR = get_data_dir()
 DB_PATH = os.path.join(DATA_DIR, "backlog_master.db")
 
 

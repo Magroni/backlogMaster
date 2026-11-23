@@ -1,0 +1,49 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build standalone GameBacklogMaster.exe
+        run: python scripts/build_exe.py
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GameBacklogMaster-Windows
+          path: dist/GameBacklogMaster.exe
+          retention-days: 90
+
+      - name: Publish latest GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: 🎮 Game Backlog Master (Windows App)
+          body: |
+            Aplicativo desktop standalone para Windows — basta baixar **GameBacklogMaster.exe** e dar duplo clique (não precisa de Python nem scripts!).
+            - Janela própria nativa + ícone na bandeja do Windows (System Tray)
+            - Detector automático de jogos PC (Steam, Epic Games, PC Game Pass e `.exe` avulsos)
+            - HowLongToBeat + Steam + PC Game Pass + Epic Grátis + CheapShark + ProtonDB
+          files: dist/GameBacklogMaster.exe
+          make_latest: true

@@ -1,25 +1,34 @@
-# 🎮 Game Backlog Master — App Local PC (Auto-Detecção + SQLite)
+# 🎮 Game Backlog Master — App Desktop Nativo para Windows
 
-App 100% local para Windows feito em **FastAPI + SQLite + Interface Web Dark-Mode** que **detecta automaticamente o que você está jogando no PC** (Steam, Epic Games, PC Game Pass e `.exe` customizados) e integra **HowLongToBeat**, **Steam**, **PC Game Pass**, **Epic Freebies**, **CheapShark**, **IsThereAnyDeal** e **ProtonDB**.
+Aplicativo desktop completo e standalone (**`GameBacklogMaster.exe`**) para Windows — **sem precisar de Python, sem scripts, sem janela de terminal e sem aba de navegador**.
 
-## 🚀 Como Iniciar (1 clique)
+## ⬇️ Como Usar (Zero Configuração)
 
-- **Com janela de status:** dê duplo clique em **`Iniciar_BacklogMaster.bat`**
-- **Silencioso em segundo plano:** dê duplo clique em **`Iniciar_Silencioso.vbs`** *(pode colocar um atalho na pasta `shell:startup` do Windows para rastrear suas jogatinas automaticamente sempre que ligar o PC!)*
-- Endereço no navegador: **http://127.0.0.1:8765**
+1. Baixe **`GameBacklogMaster.exe`** na aba **[Releases](https://github.com/Magroni/backlogMaster/releases)** deste repositório *(compilado automaticamente pelo GitHub Actions)*.
+2. Dê duplo clique em **`GameBacklogMaster.exe`**.
+3. Pronto! O app abre em sua **janela própria nativa** e cria um **ícone na bandeja do Windows (System Tray)**.
+   - Ao fechar no **`X`**, ele minimiza para a bandeja e continua **detectando automaticamente o que você está jogando no PC**.
+   - Ative **"⚡ Iniciar com o Windows"** (pelo ícone da bandeja ou em *Configurações*) para rastrear todas as suas jogatinas automaticamente sempre que ligar o PC!
+   - Seu banco de dados SQLite fica salvo em segurança em `%LOCALAPPDATA%\GameBacklogMaster\backlog_master.db`.
 
-## ✨ Principais Recursos
+## ✨ Recursos
 
-- **📡 Detector Automático de Jogos no PC (`psutil`)**:
-  - Escaneia automaticamente jogos instalados na **Steam** (`libraryfolders.vdf`), **Epic Games** (`Manifests`) e **PC Game Pass** (`XboxGames`).
-  - Detecta quando você abre qualquer jogo, mostra cronômetro ao vivo **`🟢 JOGANDO AGORA`**, muda o status para `Jogando` e, ao fechar o jogo, **salva a sessão e soma as horas exatas automaticamente no SQLite** (`data/backlog_master.db`).
-  - Também permite vincular qualquer `.exe` rodando agora (emuladores, jogos avulsos, GOG) em 1 clique.
-- **⏱️ HowLongToBeat Real (`howlongtobeatpy`)**: tempos *Main*, *Main+Extra* e *100%* rodando direto do seu PC sem bloqueios.
+- **📡 Detector Automático em Tempo Real (`Steam`, `Epic Games`, `PC Game Pass` e `.exe` avulsos)**:
+  - Escaneia automaticamente os jogos instalados nos seus discos (`libraryfolders.vdf`, `Epic Manifests` e `XboxGames`).
+  - Detecta quando você abre qualquer jogo, exibe o cronômetro ao vivo **`🟢 JOGANDO AGORA`** e, ao fechar o jogo, **salva a sessão e soma as horas jogadas automaticamente**.
+- **⏱️ HowLongToBeat (`howlongtobeatpy`)**: tempos *Main*, *Main+Extra* e *100%* rodando direto do seu PC.
 - **🎮 PC Game Pass (Sem Chave!)**:
-  - Avisa na **Wishlist** se o jogo **já está incluso no PC Game Pass** antes de você comprar na Steam/Epic.
-  - Lista ao vivo os jogos **"🚨 Saindo em Breve"** cruzando com o seu Backlog + calculadora de ROI (`R$/hora`).
+  - Avisa na **Wishlist** se o jogo **já está incluso no PC Game Pass** antes de você gastar na Steam/Epic.
+  - Lista ao vivo **"🚨 Saindo em Breve"** cruzando com o seu Backlog + calculadora de ROI (`R$/hora`).
 - **🎁 Epic Games Grátis da Semana (Sem Chave!)**: lista atual e próxima semana com link direto de resgate.
-- **💨 Steam Integrada**: busca instantânea com preços em R$, capas verticais HD, importação de biblioteca e Wishlist + sync de horas e conquistas + **▶ Iniciar Jogo** direto pelo app.
-- **🎲 Roleta do Backlog + 📊 Dashboard com 4 gráficos interativos (Chart.js)**.
+- **💨 Steam Integrada**: preços em R$, capas verticais HD, importação de biblioteca/Wishlist, sync de horas/conquistas e botão **▶ Jogar**.
+- **🎲 Roleta do Backlog + 📊 Dashboard com 4 gráficos interativos**.
 
-*(A versão anterior em Google Sheets + Apps Script foi mantida intacta em `apps-script/` caso queira consultar.)*
+## 🛠️ Compilar o `.exe` localmente (para desenvolvimento)
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\pip install -r requirements.txt
+.\.venv\Scripts\python scripts\build_exe.py
+```
+O executável final será gerado em `dist/GameBacklogMaster.exe`.
