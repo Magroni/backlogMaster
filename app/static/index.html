@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎮 Game Backlog Master — PC Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">🎮</div>
+        <div>
+          <div class="brand-title">Backlog Master</div>
+          <div class="brand-sub">PC • Steam • Epic • Game Pass</div>
+        </div>
+      </div>
+
+      <!-- LIVE PC TRACKER WIDGET -->
+      <div id="live-widget" class="live-widget idle">
+        <div class="live-header">
+          <span class="pulse-dot"></span>
+          <span id="live-badge-text">Detector PC Ativo</span>
+        </div>
+        <div id="live-body" class="live-body">
+          <div class="live-idle-msg">Aguardando você abrir um jogo no PC...</div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-block quick-add-btn" onclick="openAddModal()">
+        <span>＋ Adicionar Jogo</span>
+        <kbd>Ctrl+K</kbd>
+      </button>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
+          <span>📊</span> Dashboard
+        </button>
+        <button class="nav-item" data-view="library" onclick="switchView('library')">
+          <span>📚</span> Biblioteca / Backlog
+          <span id="nav-count-games" class="nav-badge">0</span>
+        </button>
+        <button class="nav-item" data-view="detector" onclick="switchView('detector')">
+          <span>📡</span> Detector PC
+          <span id="nav-count-installed" class="nav-badge badge-green">0</span>
+        </button>
+        <button class="nav-item" data-view="wishlist" onclick="switchView('wishlist')">
+          <span>🏷️</span> Wishlist & Ofertas
+          <span id="nav-count-wl" class="nav-badge badge-pink">0</span>
+        </button>
+        <button class="nav-item" data-view="hub" onclick="switchView('hub')">
+          <span>🎁</span> Game Pass & Epic
+        </button>
+        <button class="nav-item" data-view="roulette" onclick="switchView('roulette')">
+          <span>🎲</span> Roleta do Backlog
+        </button>
+        <button class="nav-item" data-view="sessions" onclick="switchView('sessions')">
+          <span>⏱️</span> Diário de Sessões
+        </button>
+        <button class="nav-item" data-view="settings" onclick="switchView('settings')">
+          <span>⚙️</span> Configurações & APIs
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="tiny-muted">100% Local • SQLite</div>
+        <div class="tiny-muted">Monitorando processos a cada 3s</div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+      <!-- ==================== VIEW: DASHBOARD ==================== -->
+      <section id="view-dashboard" class="view active">
+        <div class="page-head">
+          <div>
+            <h1>Painel de Controle</h1>
+            <p id="dash-subtitle" class="muted">Visão geral do seu acervo PC, ritmo de jogo e recomendações.</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-ghost" onclick="switchView('detector'); loadInstalledScan(true)">📡 Escanear Jogos no PC</button>
+            <button class="btn btn-primary" onclick="openAddModal()">＋ Novo Jogo</button>
+          </div>
+        </div>
+
+        <div id="dash-now-playing-banner" style="display:none" class="hero-playing"></div>
+        <div id="dash-leaving-alert" style="display:none" class="alert-strip"></div>
+
+        <!-- 6 KPI CARDS -->
+        <div class="kpi-grid" id="dash-kpis"></div>
+
+        <!-- GOAL + WISHLIST RADAR -->
+        <div class="two-col">
+          <div class="card">
+            <div class="card-head">
+              <h3>🎯 Meta Anual & Ritmo</h3>
+              <span id="goal-badge" class="pill pill-indigo"></span>
+            </div>
+            <div id="goal-content"></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h3>🔥 Radar da Wishlist & Game Pass</h3>
+              <button class="btn btn-xs btn-ghost" onclick="switchView('wishlist')">Ver Wishlist →</button>
+            </div>
+            <div id="wl-radar-content"></div>
+          </div>
+        </div>
+
+        <!-- TOP 5 + HALL OF FAME -->
+        <div class="two-col-wide">
+          <div class="card">
+            <div class="card-head">
+              <h3>🎲 Top 5 Próximos Jogos Recomendados</h3>
+              <span class="muted small">Ranking por Score Inteligente</span>
+            </div>
+            <div id="dash-top5"></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h3>🏅 Hall da Fama</h3>
+            </div>
+            <div id="dash-hof"></div>
+          </div>
+        </div>
+
+        <!-- 4 INTERACTIVE CHARTS -->
+        <div class="charts-grid">
+          <div class="card chart-card">
+            <h3>📊 Distribuição por Status</h3>
+            <div class="chart-wrap"><canvas id="chart-status"></canvas></div>
+          </div>
+          <div class="card chart-card">
+            <h3>🏪 Acervo vs. Zerados por Loja</h3>
+            <div class="chart-wrap"><canvas id="chart-stores"></canvas></div>
+          </div>
+          <div class="card chart-card">
+            <h3>📅 Evolução Mensal (Horas & Zerados)</h3>
+            <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
+          </div>
+          <div class="card chart-card">
+            <h3>⏳ Duração HLTB: Backlog vs. Zerados</h3>
+            <div class="chart-wrap"><canvas id="chart-hltb"></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW: LIBRARY / BACKLOG ==================== -->
+      <section id="view-library" class="view">
+        <div class="page-head">
+          <div>
+            <h1>Biblioteca & Backlog</h1>
+            <p class="muted">Gerencie seus jogos, lance direto do app e enriqueça via HLTB, Steam e ProtonDB.</p>
+          </div>
+          <div class="head-actions">
+            <button id="btn-enrich-batch" class="btn btn-ghost" onclick="enrichMissingBatch()">⚡ Enriquecer Faltantes (HLTB/Steam)</button>
+            <button class="btn btn-primary" onclick="openAddModal()">＋ Adicionar Jogo</button>
+          </div>
+        </div>
+
+        <div class="filter-bar card">
+          <input id="lib-search" class="input" placeholder="🔍 Filtrar por título ou gênero..." oninput="renderLibrary()" />
+          <select id="lib-status" class="select" onchange="renderLibrary()">
+            <option value="ALL">Todos os Status</option>
+            <option value="Backlog">📌 Backlog</option>
+            <option value="Jogando">🕹️ Jogando</option>
+            <option value="Pausado">⏸️ Pausado</option>
+            <option value="Zerado">✅ Zerado</option>
+            <option value="100% / Platina">🏆 100% / Platina</option>
+            <option value="Contínuo / MP">♾️ Contínuo / MP</option>
+            <option value="Dropado">💀 Dropado</option>
+          </select>
+          <select id="lib-store" class="select" onchange="renderLibrary()">
+            <option value="ALL">Todas as Lojas</option>
+            <option value="Steam">Steam</option>
+            <option value="Epic Games">Epic Games</option>
+            <option value="PC Game Pass">PC Game Pass</option>
+            <option value="GOG">GOG</option>
+            <option value="Amazon Prime">Amazon Prime</option>
+            <option value="EA Play">EA Play</option>
+            <option value="Outro">Outro</option>
+          </select>
+          <select id="lib-sort" class="select" onchange="renderLibrary()">
+            <option value="score">Ordenar: Score Próximo</option>
+            <option value="updated">Ordenar: Recentes</option>
+            <option value="hltb_asc">Ordenar: Mais Curtos (HLTB)</option>
+            <option value="hours_desc">Ordenar: Mais Jogados</option>
+            <option value="critic_desc">Ordenar: Nota Crítica</option>
+            <option value="title">Ordenar: A → Z</option>
+          </select>
+          <label class="toggle-chip">
+            <input type="checkbox" id="lib-installed-only" onchange="renderLibrary()" />
+            <span>💻 Só Instalados</span>
+          </label>
+          <div class="view-toggle">
+            <button id="btn-mode-grid" class="btn btn-xs active" onclick="setLibMode('grid')">🎨 Cards</button>
+            <button id="btn-mode-table" class="btn btn-xs" onclick="setLibMode('table')">📋 Tabela</button>
+          </div>
+        </div>
+
+        <div id="lib-container"></div>
+      </section>
+
+      <!-- ==================== VIEW: DETECTOR PC ==================== -->
+      <section id="view-detector" class="view">
+        <div class="page-head">
+          <div>
+            <h1>📡 Detector Automático do PC</h1>
+            <p class="muted">Identifica em tempo real o que você está jogando no Windows (Steam, Epic Games, PC Game Pass e .exe manuais).</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-ghost" onclick="loadInstalledScan(true)">🔄 Re-escanear Discos</button>
+            <button id="btn-import-all-inst" class="btn btn-green" onclick="importAllInstalled()">📥 Importar Todos Instalados p/ Backlog</button>
+          </div>
+        </div>
+
+        <div id="detector-live-card" class="card detector-hero"></div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>💻 Jogos Instalados Detectados neste PC (<span id="inst-count">0</span>)</h3>
+            <span class="muted small">Lido diretamente da Steam (libraryfolders.vdf), Epic (Manifests) e XboxGames</span>
+          </div>
+          <div id="installed-list" class="installed-grid"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>🔗 Vincular Processo Rodando Agora (Jogos Avulsos / Emuladores / Launchers)</h3>
+            <button class="btn btn-xs btn-ghost" onclick="loadRunningProcesses()">🔄 Atualizar Processos</button>
+          </div>
+          <p class="muted small" style="margin-bottom:12px">Abra qualquer jogo que não foi detectado automaticamente, clique em Atualizar e vincule o <code>.exe</code> dele a um jogo do seu Backlog.</p>
+          <div id="running-procs-list"></div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW: WISHLIST ==================== -->
+      <section id="view-wishlist" class="view">
+        <div class="page-head">
+          <div>
+            <h1>🏷️ Wishlist & Radar de Preços</h1>
+            <p class="muted">Compara Steam BR, CheapShark, IsThereAnyDeal e avisa automaticamente se o jogo já está no PC Game Pass!</p>
+          </div>
+          <div class="head-actions">
+            <button id="btn-wl-steam" class="btn btn-ghost" onclick="importSteamWishlist()">📥 Importar Wishlist Steam</button>
+            <button id="btn-wl-refresh" class="btn btn-ghost" onclick="refreshAllWishlist()">🔄 Atualizar Preços & Game Pass</button>
+            <button class="btn btn-pink" onclick="openAddModal('wishlist')">＋ Adicionar à Wishlist</button>
+          </div>
+        </div>
+
+        <div id="wishlist-container" class="wishlist-grid"></div>
+      </section>
+
+      <!-- ==================== VIEW: GAME PASS & EPIC HUB ==================== -->
+      <section id="view-hub" class="view">
+        <div class="page-head">
+          <div>
+            <h1>🎁 PC Game Pass & Jogos Grátis da Epic</h1>
+            <p class="muted">Acompanhe o retorno da assinatura, o que vai sair do Game Pass e os jogos grátis da semana na Epic (tudo sem chave de API!).</p>
+          </div>
+          <div class="head-actions">
+            <button id="btn-sync-gp" class="btn btn-green" onclick="syncGamePassLeaving()">🚨 Atualizar Saindo do Game Pass</button>
+            <button id="btn-sync-epic" class="btn btn-primary" onclick="syncEpicFreebies()">🎁 Atualizar Grátis da Epic</button>
+          </div>
+        </div>
+
+        <div id="hub-roi-card" class="card"></div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>🚨 Saindo em Breve do PC Game Pass</h3>
+            <span class="muted small">Cruzamento automático com sua fila do Backlog</span>
+          </div>
+          <div id="hub-gp-leaving" class="hub-grid"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>🎁 Jogos Grátis da Semana — Epic Games Store</h3>
+            <span class="muted small">API oficial pública da Epic (pt-BR)</span>
+          </div>
+          <div id="hub-epic-list" class="hub-grid"></div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW: ROULETTE ==================== -->
+      <section id="view-roulette" class="view">
+        <div class="page-head">
+          <div>
+            <h1>🎲 Roleta do Backlog</h1>
+            <p class="muted">Não sabe o que jogar hoje? Filtre por tempo HLTB, loja ou só jogos já instalados e deixe o algoritmo escolher!</p>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <h3>🎛️ Filtros da Roleta</h3>
+            <div class="form-group">
+              <label>Duração Máxima HLTB: <strong id="r-max-lbl">Qualquer duração</strong></label>
+              <input id="r-max-hours" type="range" min="5" max="150" value="150"
+                oninput="document.getElementById('r-max-lbl').textContent = this.value >= 150 ? 'Qualquer duração' : 'Até ' + this.value + ' horas'" />
+            </div>
+            <div class="form-group">
+              <label>Loja / Launcher</label>
+              <select id="r-store" class="select">
+                <option value="ALL">Todas (Steam, Epic, PC Game Pass...)</option>
+                <option value="Steam">Steam</option>
+                <option value="Epic Games">Epic Games</option>
+                <option value="PC Game Pass">PC Game Pass</option>
+                <option value="GOG">GOG</option>
+              </select>
+            </div>
+            <div class="check-stack">
+              <label class="check-row"><input id="r-installed" type="checkbox" /> 💻 Apenas jogos já instalados no PC</label>
+              <label class="check-row"><input id="r-highprio" type="checkbox" /> 🔥 Apenas Prioridade Urgente / Alta</label>
+            </div>
+            <button class="btn btn-primary btn-block" style="margin-top:16px" onclick="spinRoulette()">🎲 Girar Roleta Agora!</button>
+          </div>
+
+          <div id="roulette-stage" class="card roulette-stage">
+            <div class="empty-state">
+              <div class="empty-icon">🎲</div>
+              <p>Configure os filtros e clique em <strong>Girar Roleta</strong> para escolher seu próximo jogo!</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW: SESSIONS ==================== -->
+      <section id="view-sessions" class="view">
+        <div class="page-head">
+          <div>
+            <h1>⏱️ Diário de Sessões</h1>
+            <p class="muted">Sessões detectadas automaticamente pelo PC + registros manuais.</p>
+          </div>
+        </div>
+
+        <div class="two-col-wide">
+          <div class="card">
+            <h3>📜 Histórico de Jogatinas</h3>
+            <div id="sessions-list"></div>
+          </div>
+          <div class="card">
+            <h3>✍️ Registrar Sessão Manual</h3>
+            <div class="form-group">
+              <label>Jogo</label>
+              <select id="sess-game" class="select"></select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Duração (minutos)</label>
+                <input id="sess-mins" type="number" class="input" value="90" min="5" />
+              </div>
+              <div class="form-group">
+                <label>Diversão (1-5 ⭐)</label>
+                <select id="sess-fun" class="select">
+                  <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+                  <option value="4">⭐⭐⭐⭐ (4)</option>
+                  <option value="3">⭐⭐⭐ (3)</option>
+                  <option value="2">⭐⭐ (2)</option>
+                  <option value="1">⭐ (1)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Zerou nesta sessão?</label>
+              <select id="sess-beat" class="select">
+                <option value="Não">Não — ainda jogando</option>
+                <option value="Zerado">✅ Sim — Zerado!</option>
+                <option value="100% / Platina">🏆 Sim — 100% / Platina!</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Notas</label>
+              <textarea id="sess-notes" class="input" rows="3" placeholder="Chefe vencido, capítulo atual..."></textarea>
+            </div>
+            <button class="btn btn-green btn-block" onclick="saveManualSession()">💾 Salvar Sessão & Somar Horas</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW: SETTINGS ==================== -->
+      <section id="view-settings" class="view">
+        <div class="page-head">
+          <div>
+            <h1>⚙️ Configurações, Detector & APIs</h1>
+            <p class="muted">Tudo fica salvo localmente no seu SQLite em <code>data/backlog_master.db</code>.</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-primary" onclick="saveAllSettings()">💾 Salvar Configurações</button>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <h3>📡 Detector Automático do PC</h3>
+            <div class="check-stack" style="margin-bottom:12px">
+              <label class="check-row"><input id="cfg-auto-track" type="checkbox" /> Ativar detecção automática de jogos rodando no PC</label>
+              <label class="check-row"><input id="cfg-auto-add" type="checkbox" /> Adicionar automaticamente ao Backlog ao abrir um jogo instalado novo</label>
+            </div>
+            <div class="form-group">
+              <label>Tempo mínimo p/ salvar sessão (segundos)</label>
+              <input id="cfg-min-sec" type="number" class="input" />
+            </div>
+            <div class="form-group">
+              <label>Pastas extras de jogos (separadas por ponto e vírgula <code>;</code>)</label>
+              <input id="cfg-scan-dirs" class="input" placeholder="Ex.: D:\Games; E:\GOG Games" />
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>🎯 Metas & Assinaturas</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Meta de Jogos Zerados/Ano</label>
+                <input id="cfg-meta" type="number" class="input" />
+              </div>
+              <div class="form-group">
+                <label>Horas Disponíveis/Semana</label>
+                <input id="cfg-hsem" type="number" class="input" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Modo HLTB Restante</label>
+                <select id="cfg-hltb-mode" class="select">
+                  <option value="extra">Main + Extra (Recomendado)</option>
+                  <option value="main">Apenas História Principal</option>
+                  <option value="comp">Complecionista / 100%</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Mensalidade PC Game Pass (R$)</label>
+                <input id="cfg-gp-price" type="number" step="0.01" class="input" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Cotação USD → BRL (usada no CheapShark)</label>
+              <input id="cfg-usd" type="number" step="0.05" class="input" />
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>💨 Integração Conta Steam (Opcional — Grátis)</h3>
+            <p class="muted small">Permite importar toda sua biblioteca Steam, sua Wishlist e sincronizar horas/conquistas.</p>
+            <div class="form-group">
+              <label>Steam Web API Key (<a href="https://steamcommunity.com/dev/apikey" target="_blank">gerar grátis</a>)</label>
+              <input id="cfg-steam-key" type="password" class="input" placeholder="Cole sua Steam API Key" />
+            </div>
+            <div class="form-group">
+              <label>SteamID64 — 17 dígitos (<a href="https://steamid.io/" target="_blank">descobrir</a>)</label>
+              <input id="cfg-steam-id" class="input" placeholder="7656119..." />
+            </div>
+            <div class="btn-row">
+              <button id="btn-imp-steam-lib" class="btn btn-primary" onclick="importSteamLibrary()">📥 Importar Biblioteca Steam</button>
+              <button id="btn-sync-steam-stats" class="btn btn-ghost" onclick="syncSteamStats()">🔄 Sync Horas & Conquistas</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>🔑 APIs Extras (Opcionais)</h3>
+            <p class="muted small">HLTB, Steam Store BR, PC Game Pass, Epic Freebies, CheapShark e ProtonDB já funcionam <strong>sem chave</strong>!</p>
+            <div class="form-group">
+              <label>IsThereAnyDeal (ITAD) API Key — preços em R$ na Nuuvem/GMG/GOG (<a href="https://isthereanydeal.com/apps/my/" target="_blank">gerar grátis</a>)</label>
+              <input id="cfg-itad-key" type="password" class="input" placeholder="Opcional" />
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL: ADICIONAR JOGO (BUSCA UNIFICADA HLTB + STEAM + GAME PASS + PREÇOS) -->
+  <div id="add-modal" class="modal-backdrop" onclick="if(event.target===this) closeAddModal()">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="add-modal-title">✨ Adicionar Jogo com Busca Automática</h2>
+        <button class="icon-btn" onclick="closeAddModal()">✕</button>
+      </div>
+      <div class="search-row">
+        <input id="add-query" class="input" placeholder="Digite o nome do jogo (ex: Elden Ring, Hades II, Expedition 33)..." onkeydown="if(event.key==='Enter') runUnifiedSearch()" />
+        <button id="btn-add-search" class="btn btn-primary" onclick="runUnifiedSearch()">🔍 Buscar</button>
+      </div>
+
+      <div id="add-suggestions" class="suggestions"></div>
+
+      <div id="add-preview" style="display:none" class="add-preview">
+        <img id="ap-cover" class="ap-cover" />
+        <div class="ap-info">
+          <h3 id="ap-title"></h3>
+          <div id="ap-pills" class="pill-wrap"></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Loja / Launcher</label>
+              <select id="ap-store" class="select">
+                <option>Steam</option><option>Epic Games</option><option>PC Game Pass</option>
+                <option>GOG</option><option>Amazon Prime</option><option>EA Play</option><option>Outro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Status</label>
+              <select id="ap-status" class="select">
+                <option value="Backlog">📌 Backlog</option>
+                <option value="Jogando">🕹️ Jogando</option>
+                <option value="Pausado">⏸️ Pausado</option>
+                <option value="Zerado">✅ Zerado</option>
+                <option value="100% / Platina">🏆 100% / Platina</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Prioridade</label>
+              <select id="ap-prio" class="select">
+                <option value="1">🔥 1 - Urgente</option>
+                <option value="2" selected>⭐ 2 - Alta</option>
+                <option value="3">👍 3 - Média</option>
+                <option value="4">🧊 4 - Baixa</option>
+                <option value="5">💤 5 - Talvez</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Preço Pago / Alvo (R$)</label>
+              <input id="ap-price" type="number" step="0.01" class="input" value="0" />
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-green" onclick="confirmAddGame('backlog')">➕ Salvar no Backlog</button>
+            <button class="btn btn-pink" onclick="confirmAddGame('wishlist')">🏷️ Salvar na Wishlist</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE-OVER DRAWER: DETALHES & EDIÇÃO DO JOGO -->
+  <div id="detail-drawer" class="drawer-backdrop" onclick="if(event.target===this) closeDrawer()">
+    <div class="drawer" id="drawer-content"></div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

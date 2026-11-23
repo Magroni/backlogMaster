@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --green: #10b981;
+      --pink: #ec4899;
+      --amber: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 12px;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text); font-size: 13px;
+    }
+    .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+    .tab-btn {
+      flex: 1; padding: 8px 6px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--card); color: var(--muted); font-weight: 600; cursor: pointer;
+      font-size: 12px; transition: all .15s;
+    }
+    .tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px; margin-bottom: 12px;
+    }
+    label { display: block; font-size: 11px; color: var(--muted); margin: 8px 0 4px; font-weight: 600; }
+    input, select, textarea {
+      width: 100%; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: #0b1220; color: var(--text);
+      font-size: 12px; outline: none;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    .row { display: flex; gap: 8px; }
+    .row > * { flex: 1; }
+    .btn {
+      width: 100%; padding: 9px 12px; border: none; border-radius: 8px;
+      font-weight: 700; font-size: 12px; cursor: pointer; margin-top: 10px;
+      color: #fff; background: var(--accent); transition: background .15s;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn-green { background: var(--green); }
+    .btn-green:hover { background: #059669; }
+    .btn-pink { background: var(--pink); }
+    .btn-pink:hover { background: #db2777; }
+    .btn:disabled { opacity: 0.55; cursor: wait; }
+    .cover { width: 100%; border-radius: 8px; margin-bottom: 8px; max-height: 145px; object-fit: cover; }
+    .pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .pill {
+      background: #0b1220; border: 1px solid var(--border);
+      padding: 4px 8px; border-radius: 999px; font-size: 11px; color: #e2e8f0;
+    }
+    .pill strong { color: #a5b4fc; }
+    .title { font-size: 15px; font-weight: 800; margin: 4px 0; }
+    .msg { font-size: 12px; margin-top: 8px; padding: 8px; border-radius: 8px; display: none; }
+    .msg.ok { display: block; background: rgba(16,185,129,.18); color: #6ee7b7; border: 1px solid #059669; }
+    .msg.err { display: block; background: rgba(244,63,94,.18); color: #fda4af; border: 1px solid #e11d48; }
+    .muted { color: var(--muted); font-size: 11px; }
+  </style>
+</head>
+<body>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('search', this)">🔍 Buscar</button>
+    <button class="tab-btn" onclick="switchTab('roulette', this)">🎲 Roleta</button>
+    <button class="tab-btn" onclick="switchTab('session', this)">⏱️ Sessão</button>
+  </div>
+
+  <!-- ABA 1: BUSCA UNIFICADA -->
+  <div id="tab-search" class="panel active">
+    <div class="card">
+      <label>Nome do Jogo (busca HLTB + Steam + Preços + ProtonDB)</label>
+      <input id="q-input" placeholder="Ex.: Hollow Knight, Persona 5, Silksong..." onkeydown="if(event.key==='Enter') runSearch()" />
+      <button id="btn-search" class="btn" onclick="runSearch()">🔍 Buscar nas APIs</button>
+    </div>
+
+    <div id="search-result" class="card" style="display:none">
+      <img id="res-cover" class="cover" style="display:none" />
+      <div id="res-title" class="title"></div>
+      <div class="pills" id="res-pills"></div>
+
+      <div class="row">
+        <div>
+          <label>Plataforma</label>
+          <select id="add-plat">
+            <option selected>PC</option><option>Steam Deck</option><option>PC (Cloud / xCloud)</option>
+            <option>PS5</option><option>Xbox Series</option><option>Nintendo Switch</option><option>Mobile</option>
+          </select>
+        </div>
+        <div>
+          <label>Loja / Origem</label>
+          <select id="add-store">
+            <option selected>Steam</option><option>Epic Games</option><option>PC Game Pass</option>
+            <option>GOG</option><option>EA Play</option><option>Amazon Prime</option>
+            <option>Humble Bundle</option><option>Ubisoft</option><option>Outro</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Prioridade (Backlog)</label>
+          <select id="add-prio">
+            <option>🔥 1 - Urgente</option>
+            <option selected>⭐ 2 - Alta</option>
+            <option>👍 3 - Média</option>
+            <option>🧊 4 - Baixa</option>
+          </select>
+        </div>
+        <div>
+          <label>Preço Pago / Alvo (R$)</label>
+          <input id="add-price" type="number" step="0.01" placeholder="0.00" />
+        </div>
+      </div>
+
+      <div class="row">
+        <button class="btn btn-green" onclick="addFound('backlog')">➕ No Backlog</button>
+        <button class="btn btn-pink" onclick="addFound('wishlist')">🏷️ Na Wishlist</button>
+      </div>
+    </div>
+    <div id="search-msg" class="msg"></div>
+  </div>
+
+  <!-- ABA 2: ROLETA DO BACKLOG -->
+  <div id="tab-roulette" class="panel">
+    <div class="card">
+      <label>Duração Máxima HLTB: <strong id="max-h-lbl">Qualquer</strong></label>
+      <input id="max-hours" type="range" min="5" max="150" value="150" oninput="document.getElementById('max-h-lbl').textContent = this.value >= 150 ? 'Qualquer' : this.value + 'h'" />
+
+      <label>Filtrar por Loja / Launcher</label>
+      <select id="r-plat">
+        <option value="ALL">Todas as Lojas (Steam, Epic, Game Pass...)</option>
+        <option>Steam</option><option>Epic Games</option><option>PC Game Pass</option>
+        <option>GOG</option><option>Amazon Prime</option><option>EA Play</option>
+      </select>
+
+      <label style="display:flex;align-items:center;gap:6px;margin-top:10px;cursor:pointer">
+        <input id="r-prio" type="checkbox" style="width:auto" /> Apenas Prioridade Urgente / Alta
+      </label>
+
+      <button id="btn-spin" class="btn" onclick="spinRoulette()">🎲 Girar Roleta do Backlog</button>
+    </div>
+
+    <div id="roulette-result" class="card" style="display:none">
+      <div class="muted">🎯 SORTEADO PARA VOCÊ:</div>
+      <img id="r-cover" class="cover" style="display:none;margin-top:6px" />
+      <div id="r-title" class="title"></div>
+      <div class="pills" id="r-pills"></div>
+      <button class="btn btn-green" onclick="startPickedGame()">🕹️ Começar a Jogar Agora!</button>
+    </div>
+    <div id="roulette-msg" class="msg"></div>
+  </div>
+
+  <!-- ABA 3: REGISTRAR SESSÃO -->
+  <div id="tab-session" class="panel">
+    <div class="card">
+      <label>Jogo (da sua aba Backlog)</label>
+      <select id="s-game"><option>Carregando jogos...</option></select>
+
+      <div class="row">
+        <div>
+          <label>Horas Jogadas</label>
+          <input id="s-hours" type="number" step="0.5" min="0.5" value="2" />
+        </div>
+        <div>
+          <label>Diversão (1-5 ⭐)</label>
+          <select id="s-fun">
+            <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+            <option value="4">⭐⭐⭐⭐ (4)</option>
+            <option value="3">⭐⭐⭐ (3)</option>
+            <option value="2">⭐⭐ (2)</option>
+            <option value="1">⭐ (1)</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Zerou nesta sessão?</label>
+      <select id="s-beat">
+        <option value="Não">Não — ainda jogando</option>
+        <option value="✅ Zerado">✅ Sim — Zerado!</option>
+        <option value="🏆 100% / Platina">🏆 Sim — 100% / Platina!</option>
+      </select>
+
+      <label>Anotações da Sessão</label>
+      <textarea id="s-notes" rows="3" placeholder="Chefe derrotado, capítulo atual, impressões..."></textarea>
+
+      <button id="btn-sess" class="btn btn-green" onclick="saveSession()">💾 Salvar Sessão & Somar Horas</button>
+    </div>
+    <div id="sess-msg" class="msg"></div>
+  </div>
+
+  <script>
+    let currentGame = null;
+    let pickedRow = null;
+
+    function switchTab(id, btn) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + id).classList.add('active');
+      btn.classList.add('active');
+      if (id === 'session') loadGamesDropdown();
+    }
+
+    function showMsg(elId, text, ok) {
+      const el = document.getElementById(elId);
+      el.textContent = text;
+      el.className = 'msg ' + (ok ? 'ok' : 'err');
+    }
+
+    function runSearch() {
+      const q = document.getElementById('q-input').value.trim();
+      if (!q) return;
+      const btn = document.getElementById('btn-search');
+      btn.disabled = true; btn.textContent = '⏳ Consultando APIs...';
+      document.getElementById('search-msg').className = 'msg';
+
+      google.script.run
+        .withSuccessHandler(res => {
+          btn.disabled = false; btn.textContent = '🔍 Buscar nas APIs';
+          currentGame = res;
+          document.getElementById('search-result').style.display = 'block';
+          document.getElementById('res-title').textContent = res.title;
+          const img = document.getElementById('res-cover');
+          if (res.coverUrl) { img.src = res.coverUrl; img.style.display = 'block'; }
+          else { img.style.display = 'none'; }
+
+          const pills = [];
+          if (res.hltbMain) pills.push(`<span>⏱️ Main: <strong>${res.hltbMain}h</strong></span>`);
+          if (res.hltbExtra) pills.push(`<span>➕ Extra: <strong>${res.hltbExtra}h</strong></span>`);
+          if (res.hltbComp) pills.push(`<span>🏆 100%: <strong>${res.hltbComp}h</strong></span>`);
+          if (res.critic) pills.push(`<span>⭐ Crítica: <strong>${res.critic}</strong></span>`);
+          if (res.currentPrice !== '' && res.currentPrice !== undefined) pills.push(`<span>💰 Atual: <strong>R$ ${Number(res.currentPrice).toFixed(2)}</strong></span>`);
+          if (res.historicalLow !== '' && res.historicalLow !== undefined) pills.push(`<span>🔥 Menor: <strong>R$ ${Number(res.historicalLow).toFixed(2)}</strong></span>`);
+          if (res.protonTier) pills.push(`<span>${res.protonTier}</span>`);
+          if (res.gamePass && res.gamePass !== 'Não') pills.push(`<span style="color:#34d399;font-weight:700">${res.gamePass}</span>`);
+          document.getElementById('res-pills').innerHTML = pills.map(p => `<div class="pill">${p}</div>`).join('');
+          if (res.currentPrice !== '' && res.currentPrice !== undefined) {
+            document.getElementById('add-price').value = Number(res.currentPrice).toFixed(2);
+          }
+        })
+        .withFailureHandler(err => {
+          btn.disabled = false; btn.textContent = '🔍 Buscar nas APIs';
+          showMsg('search-msg', 'Erro: ' + err.message, false);
+        })
+        .sidebarSearchGame(q);
+    }
+
+    function addFound(dest) {
+      if (!currentGame) return;
+      const payload = Object.assign({}, currentGame, {
+        platform: document.getElementById('add-plat').value,
+        store: document.getElementById('add-store').value,
+        priority: document.getElementById('add-prio').value,
+        pricePaid: document.getElementById('add-price').value,
+        targetPrice: document.getElementById('add-price').value,
+      });
+      const fn = dest === 'backlog' ? 'sidebarAddToBacklog' : 'sidebarAddToWishlist';
+      google.script.run
+        .withSuccessHandler(res => {
+          showMsg('search-msg', `✅ "${payload.title}" adicionado à linha ${res.row} da aba ${dest === 'backlog' ? 'Backlog' : 'Wishlist'}!`, true);
+        })
+        .withFailureHandler(err => showMsg('search-msg', 'Erro: ' + err.message, false))
+        [fn](payload);
+    }
+
+    function spinRoulette() {
+      const btn = document.getElementById('btn-spin');
+      btn.disabled = true; btn.textContent = '🎲 Sorteando...';
+      const maxH = Number(document.getElementById('max-hours').value);
+      google.script.run
+        .withSuccessHandler(res => {
+          btn.disabled = false; btn.textContent = '🎲 Girar Roleta do Backlog';
+          if (!res.ok) {
+            document.getElementById('roulette-result').style.display = 'none';
+            showMsg('roulette-msg', res.message, false);
+            return;
+          }
+          document.getElementById('roulette-msg').className = 'msg';
+          const p = res.picked;
+          pickedRow = p.row;
+          document.getElementById('roulette-result').style.display = 'block';
+          document.getElementById('r-title').textContent = p.title;
+          const img = document.getElementById('r-cover');
+          if (p.coverUrl) { img.src = p.coverUrl; img.style.display = 'block'; }
+          else { img.style.display = 'none'; }
+          document.getElementById('r-pills').innerHTML = [
+            `📱 <strong>${p.platform}</strong>`,
+            `⏱️ HLTB: <strong>${p.hltb || '?'}h</strong>`,
+            `⭐ Crítica: <strong>${p.critic}</strong>`,
+            `🧠 Score: <strong>${p.score}</strong>`,
+          ].map(x => `<div class="pill">${x}</div>`).join('');
+        })
+        .pickBacklogRoulette({
+          maxHours: maxH >= 150 ? 999 : maxH,
+          platform: document.getElementById('r-plat').value,
+          onlyHighPrio: document.getElementById('r-prio').checked,
+        });
+    }
+
+    function startPickedGame() {
+      if (!pickedRow) return;
+      google.script.run
+        .withSuccessHandler(res => showMsg('roulette-msg', `🕹️ "${res.title}" agora está em Jogando!`, true))
+        .startPlayingGame(pickedRow);
+    }
+
+    function loadGamesDropdown() {
+      google.script.run.withSuccessHandler(list => {
+        const sel = document.getElementById('s-game');
+        sel.innerHTML = list.map(g => `<option value="${g.title.replace(/"/g, '&quot;')}">${g.title} (${g.status})</option>`).join('');
+      }).sidebarGetBacklogTitles();
+    }
+
+    function saveSession() {
+      const btn = document.getElementById('btn-sess');
+      btn.disabled = true; btn.textContent = '⏳ Salvando...';
+      google.script.run
+        .withSuccessHandler(res => {
+          btn.disabled = false; btn.textContent = '💾 Salvar Sessão & Somar Horas';
+          if (res.ok) {
+            document.getElementById('s-notes').value = '';
+            showMsg('sess-msg', '✅ Sessão registrada e horas somadas no Backlog!', true);
+          } else {
+            showMsg('sess-msg', res.message, false);
+          }
+        })
+        .logGameSession({
+          title: document.getElementById('s-game').value,
+          hours: document.getElementById('s-hours').value,
+          fun: document.getElementById('s-fun').value,
+          beatStatus: document.getElementById('s-beat').value,
+          notes: document.getElementById('s-notes').value,
+        });
+    }
+  </script>
+</body>
+</html>
